@@ -1,0 +1,55 @@
+name: Go
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    branches: ["main"]
+    paths-ignore:
+      - "**.md"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Build Linux x86_64
+        run: GOOS=linux GOARCH=amd64 go build -o nyaa-api-linux-x86_64 .
+
+      - name: Build Windows x86_64
+        run: GOOS=windows GOARCH=amd64 go build -o nyaa-api-windows-x86_64.exe .
+
+      - name: Build Linux ARM64 (Pi 3/3+/Zero 2W/Pi 4/400/CM4/Pi 5/CM5 — 64-bit OS)
+        run: GOOS=linux GOARCH=arm64 go build -o nyaa-api-pi-arm64 .
+
+      - name: Build Linux ARMv7 (Pi 2/Pi 3/3+/Zero 2W — 32-bit OS)
+        run: GOOS=linux GOARCH=arm GOARM=7 go build -o nyaa-api-pi-armv7 .
+
+      - name: Build Linux ARMv6 (Pi 1/Zero/Zero W)
+        run: GOOS=linux GOARCH=arm GOARM=6 go build -o nyaa-api-pi-armv6 .
+
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: "Build #${{ github.run_number }}"
+          files: |
+            nyaa-api-linux-x86_64
+            nyaa-api-windows-x86_64.exe
+            nyaa-api-pi-arm64
+            nyaa-api-pi-armv7
+            nyaa-api-pi-armv6
